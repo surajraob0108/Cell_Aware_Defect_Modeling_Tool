@@ -104,7 +104,9 @@ def area_element(xycoordinateinput):
         area_value  = length * width
     else:
         area_value = 0
-    return area_value
+        length=0
+        width=0
+    return area_value,length,width
 
 # 
 # Function to calculate the minuimum distance between two elements 
@@ -205,56 +207,69 @@ def neighboring_element(inputlist,elementposition):
 with open("INV_X1.gds", "rb") as stream:
     file_name_input = stream.name.split(".")
     file_name = (file_name_input[0],"txt")
-    file_name_output =".".join(file_name)
+    file_name_output =".".join(file_name)                                           # TEXT FILE NAME CREATION
     file_name_element = (file_name_input[0],"element","data")
     file_name_element_output = "_".join(file_name_element)
-    file_name_element_output_join  = (file_name_element_output,"txt")
+    file_name_element_output_join  = (file_name_element_output,"txt")           
+    file_name_spice_output_join = (file_name_input[0],"sp")                
     global fine_name_element_final
-    fine_name_element_final = ".".join(file_name_element_output_join)
+    global file_name_spice_final
+    fine_name_element_final = ".".join(file_name_element_output_join)               # ELEMENT FILE NAME CREATION
+    file_name_spice_final = ".".join(file_name_spice_output_join)                   # SPICE FILE NAME CREATION
 
 
     # Based on the different data type , writing the necessary information to the text file
     with open(file_name_output, "w") as result:
         with open(fine_name_element_final,"w") as elementresult:
+            with open(file_name_spice_final,"w") as spiceresult:
 
-            global linenumber 
-            linenumber = 0
-            result.write("GDS:FileName:" + stream.name + "\n")
-            result.write("\n")
-            elementresult.write("GDS:FileName:" + stream.name + "\n")
-            # Iterate through all the records in the given file
-            for record_details in Record.iterate(stream):
-                if record_details.tag_type == types.BITARRAY:
-                    result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" + str(record_details.data) + "\n")
-                    result.write("\n")
-                elif record_details.tag_type == types.INT2: 
-                    result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n")
-                    if(record_details.tag_name == "LAYER"):
-                        layernumberstring = str(record_details.data)
-                        layernumber = layernumberstring[1:len(layernumberstring)-2]
-                        result.write("LayerNumber:"+ layernumber +"\n")
-                        linenumber = linenumber + 1
-                        elementresult.write(str(linenumber) + ":"+"Layer:"+ layernumber +":")
-                        result.write("LayerName:"+ LayerMapFunction(layernumber) + "\n")
-                        elementresult.write(LayerMapFunction(layernumber) + ":")
-                    result.write("\n")
-                elif record_details.tag_type == types.INT4: 
-                    result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n")
-                    result.write("Area:" + str(area_element(record_details.data))+"U" + "\n")
-                    elementresult.write(str(new_data) + "\n")
-                    result.write("\n")
-                elif record_details.tag_type == types.REAL8: 
-                    result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n")
-                    result.write("\n")          
-                elif record_details.tag_type == types.ASCII:            
-                    result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  record_details.data.decode('utf-8') + "\n")
-                    result.write("\n")
-                elif record_details.tag_type == types.NODATA:            
-                    result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n") 
-                    result.write("\n")
-                else:
-                    result.write("\n")
+                global linenumber 
+                linenumber = 0
+                result.write("GDS:FileName:" + stream.name + "\n")
+                result.write("\n")
+                elementresult.write("GDS:FileName:" + stream.name + "\n")
+                spiceresult.write("Circuit:" + stream.name +  "\n")                    # SPICE FILE LINE1
+                spiceresult.write(".SUBCKT " +  file_name_input[0] + " ")              # SPICE FILE LINE2
+                # Iterate through all the records in the given file
+                for record_details in Record.iterate(stream):
+                    if record_details.tag_type == types.BITARRAY:
+                        result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" + str(record_details.data) + "\n")
+                        result.write("\n")
+                    elif record_details.tag_type == types.INT2: 
+                        result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n")
+                        if(record_details.tag_name == "LAYER"):
+                            layernumberstring = str(record_details.data)
+                            layernumber = layernumberstring[1:len(layernumberstring)-2]
+                            result.write("LayerNumber:"+ layernumber +"\n")
+                            result.write("LayerName:"+ LayerMapFunction(layernumber) + "\n")
+                            linenumber = linenumber + 1
+                            elementresult.write(str(linenumber) + ":"+"Layer:"+ layernumber +":")
+                            elementresult.write(LayerMapFunction(layernumber) + ":")
+                        result.write("\n")
+                    elif record_details.tag_type == types.INT4: 
+                        result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n")
+                        result.write("Area:" + str(area_element(record_details.data)[0])+"U" + "\n")
+                        result.write("Length: " + str(area_element(record_details.data)[1]) + "nm" + "\n")
+                        result.write("Width: " + str(area_element(record_details.data)[2]) + "nm" + "\n")
+                        elementresult.write(str(new_data)+"\n")
+                        result.write("\n")
+                    elif record_details.tag_type == types.REAL8: 
+                        result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n")
+                        result.write("\n")          
+                    elif record_details.tag_type == types.ASCII:            
+                        result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  record_details.data.decode('utf-8') + "\n")
+                        if(record_details.tag_name == "STRING"):
+                            spiceresult.write(record_details.data.decode('utf-8') + " ")      # SPICE FILE LINE2 Continue
+                        result.write("\n")
+                    elif record_details.tag_type == types.NODATA:            
+                        result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n") 
+                        result.write("\n")
+                    else:
+                        result.write("\n")
+                spiceresult.write("\n" + ".ENDS " + file_name_input[0] + "\n")
+                spiceresult.write(".END")       
             elementresult.close()
+            spiceresult.close()
             result.close()
 
 # open the given element position details file for reading 
@@ -270,8 +285,8 @@ with open(fine_name_element_final, "r") as elementfile:
 
     # distance between two elements 
     min_distance = minimumdistance_element(firstelementpositionxy,secondelementpositionxy)
-    print("Minimum distance between the elements :" + str(min_distance) + "nm")
+    #print("Minimum distance between the elements :" + str(min_distance) + "nm")
     
     # Pass the list and also the position of the element in the list for which the neighbouring elements has to be found
-    neighboring_element(elementlist,5)
+    #neighboring_element(elementlist,5) 
 
