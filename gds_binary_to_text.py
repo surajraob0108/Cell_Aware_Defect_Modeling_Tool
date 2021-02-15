@@ -161,7 +161,7 @@ def xypairposition_element(inputlist,elementposition):
 
     elementstr = str(inputlist[elementposition])
     elementsubstr = elementstr.split(":")         
-    elementsubstrxy = elementsubstr[4]           
+    elementsubstrxy = elementsubstr[3]                                          # Obtaining only XY pairs string       
     elementsubstrxy = elementsubstrxy[1:len(elementsubstrxy) - 2].replace("'","")
     elementsubstrxy = elementsubstrxy.split(",")                                # Finally as list of coordinates    
     return elementsubstrxy
@@ -173,7 +173,7 @@ def neighboring_element(inputlist,elementposition):
     inputlistlength = len(inputlist)
     currentelement = str(inputlist[elementposition])
     currentelement = currentelement.split(":")
-    print("Current element Layer:" + currentelement[3])
+    print("Current element Layer:" + currentelement[1])
     position = elementposition - 1
     # Previous neighboring element layer
     while True: 
@@ -182,10 +182,10 @@ def neighboring_element(inputlist,elementposition):
             break
         previouselement = str(inputlist[position])
         previouselement = previouselement.split(":")
-        if(currentelement[2] == previouselement[2]):
+        if(currentelement[1] == previouselement[1]):
             position = position - 1
             continue
-        print("Previous neighbouring element in Layer:" + previouselement[3])
+        print("Previous neighbouring element in Layer:" + previouselement[1])
         break
     position = elementposition
     # Next neighboring element layer
@@ -196,12 +196,31 @@ def neighboring_element(inputlist,elementposition):
         
         nextelement = str(inputlist[position])
         nextelement = nextelement.split(":")
-        if(currentelement[2] == nextelement[2]):
+        if(currentelement[1] == nextelement[1]):
             position = position + 1
             continue
-        print("Next neighbouring element in Layer:"+ nextelement[3])
+        print("Next neighbouring element in Layer:"+ nextelement[1])
         break
-    
+# 
+# Function to modify the elementfile by removing the elements with text label XY pairs 
+#
+def modifyelementfile():
+    elementpositiontextlabel = []                                        # Array to hold element position with text label
+    listelementpositiontextlabel = []                                    # List to hold elements with text label  
+    for i in range(1,len(updateelementlist)):
+        xypairlength = updateelementlist[i].split(":")[3]
+        xypairlength = xypairlength[1:len(xypairlength) -2]
+        xypairlength = xypairlength.split(",")
+        if(len(xypairlength) < 8):
+            elementpositiontextlabel.append(i)
+
+    # adding the elements to list "listelementpositiontextlabel" with elementposition text label
+    for i in range(len(elementpositiontextlabel)):                         
+        listelementpositiontextlabel.append(updateelementlist[elementpositiontextlabel[i]])
+
+    # removing the elements from the  list "updateelementlist" with elementposition text label
+    for i in range(len(listelementpositiontextlabel)):
+        updateelementlist.remove(listelementpositiontextlabel[i])    
          
 # open the given gds file for reading in binary mode
 with open("INV_X1.gds", "rb") as stream:
@@ -227,7 +246,7 @@ with open("INV_X1.gds", "rb") as stream:
                 linenumber = 0
                 result.write("GDS:FileName:" + stream.name + "\n")
                 result.write("\n")
-                elementresult.write("GDS:FileName:" + stream.name + "\n")
+                elementresult.write("GDS:FileName:" + stream.name + " : No : Layer Name : Layer No : XY Position" + "\n")
                 spiceresult.write("Circuit:" + stream.name +  "\n")                    # SPICE FILE LINE1
                 spiceresult.write(".SUBCKT " +  file_name_input[0] + " ")              # SPICE FILE LINE2
                 # Iterate through all the records in the given file
@@ -243,8 +262,7 @@ with open("INV_X1.gds", "rb") as stream:
                             result.write("LayerNumber:"+ layernumber +"\n")
                             result.write("LayerName:"+ LayerMapFunction(layernumber) + "\n")
                             linenumber = linenumber + 1
-                            elementresult.write(str(linenumber) + ":"+"Layer:"+ layernumber +":")
-                            elementresult.write(LayerMapFunction(layernumber) + ":")
+                            elementresult.write(str(linenumber) + ":" + LayerMapFunction(layernumber) + ":" + layernumber +":")
                         result.write("\n")
                     elif record_details.tag_type == types.INT4: 
                         result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n")
@@ -272,6 +290,25 @@ with open("INV_X1.gds", "rb") as stream:
             spiceresult.close()
             result.close()
 
+# Reading the elementfile and creating the global list of elements
+
+with open(fine_name_element_final, "r") as updateelementfile:
+    # read all the lines and return as list
+    global updateelementlist 
+    updateelementlist = updateelementfile.readlines()               
+    updateelementfile.close()
+
+# Modify the elementfile
+modifyelementfile()
+
+# Writing the elementfile with updated list "updateelementlist"
+
+with open(fine_name_element_final, "w") as updateelementfile:
+    # read all the lines and return as list
+    for i in updateelementlist:
+        updateelementfile.write("%s" %i)
+    updateelementfile.close()
+
 # open the given element position details file for reading 
 # and calculate minimum distance between two elements
 
@@ -280,13 +317,13 @@ with open(fine_name_element_final, "r") as elementfile:
     elementlist = elementfile.readlines() 
 
     # Pass the list and also the position of the elements in the list for which the minimum distance has to be calculated
-    firstelementpositionxy = xypairposition_element(elementlist,5)
-    secondelementpositionxy = xypairposition_element(elementlist,6)
+    firstelementpositionxy = xypairposition_element(elementlist,12)
+    secondelementpositionxy = xypairposition_element(elementlist,13)
 
     # distance between two elements 
     min_distance = minimumdistance_element(firstelementpositionxy,secondelementpositionxy)
-    #print("Minimum distance between the elements :" + str(min_distance) + "nm")
+    print("Minimum distance between the elements :" + str(min_distance) + "nm")
     
     # Pass the list and also the position of the element in the list for which the neighbouring elements has to be found
-    #neighboring_element(elementlist,5) 
+    neighboring_element(elementlist,2) 
 
