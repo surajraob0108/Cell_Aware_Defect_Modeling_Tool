@@ -9,7 +9,7 @@ from math import sqrt
 import array as arr
 
 # 
-# Layer Map Dictionary 
+# Layer Map Dictionary {"Layer Number":"Layer Name"}
 #
 LayerMapDictionary = {"0": "NW",
                       "1": "ACT",
@@ -76,21 +76,21 @@ def LayerMapFunction(layernumberdata):
     return LayerMapDictionary[layernumberdata]
 
 # 
-# Function to calculate length of the boundary element
+# Function to calculate length of the boundary element using XY Pair Element position
 #
 def length_element(inputlist):
     length = float(inputlist[2]) - float(inputlist[0])
     return length
 
 # 
-# Function to calculate width of the boundary element
+# Function to calculate width of the boundary element using XY Pair Element position
 #
 def width_element(inputlist):
     width = float(inputlist[5]) - float(inputlist[3])
     return width
 
 # 
-# Function to calculate area of the boundary element
+# Function to calculate area of the boundary element using length and width
 #
 def area_element(xycoordinateinput):
     lengthxypair = len(xycoordinateinput)
@@ -161,7 +161,7 @@ def xypairposition_element(inputlist,elementposition):
 
     elementstr = str(inputlist[elementposition])
     elementsubstr = elementstr.split(":")         
-    elementsubstrxy = elementsubstr[3]                                          # Obtaining only XY pairs string       
+    elementsubstrxy = elementsubstr[4]                                          # Obtaining only XY pairs string       
     elementsubstrxy = elementsubstrxy[1:len(elementsubstrxy) - 2].replace("'","")
     elementsubstrxy = elementsubstrxy.split(",")                                # Finally as list of coordinates    
     return elementsubstrxy
@@ -173,25 +173,23 @@ def neighboring_element(inputlist,elementposition):
     inputlistlength = len(inputlist)
     currentelement = str(inputlist[elementposition])
     currentelement = currentelement.split(":")
-    print("Current element Layer:" + currentelement[1])
     position = elementposition - 1
     # Previous neighboring element layer
     while True: 
         if(position == 0):
-            print("Only next neighbouring element would be present")
+            previouselement = ["","No Layer"]
             break
         previouselement = str(inputlist[position])
         previouselement = previouselement.split(":")
         if(currentelement[1] == previouselement[1]):
             position = position - 1
             continue
-        print("Previous neighbouring element in Layer:" + previouselement[1])
         break
     position = elementposition
     # Next neighboring element layer
     while True:
         if(position == inputlistlength - 1):
-            print("Only previous neighbouring element would be present")
+            nextelement = ["","No Layer"]
             break
         
         nextelement = str(inputlist[position])
@@ -199,8 +197,8 @@ def neighboring_element(inputlist,elementposition):
         if(currentelement[1] == nextelement[1]):
             position = position + 1
             continue
-        print("Next neighbouring element in Layer:"+ nextelement[1])
         break
+    return currentelement[1],previouselement[1],nextelement[1]
 # 
 # Function to modify the elementfile by removing the elements with text label XY pairs 
 #
@@ -208,7 +206,7 @@ def modifyelementfile():
     elementpositiontextlabel = []                                        # Array to hold element position with text label
     listelementpositiontextlabel = []                                    # List to hold elements with text label  
     for i in range(1,len(updateelementlist)):
-        xypairlength = updateelementlist[i].split(":")[3]
+        xypairlength = updateelementlist[i].split(":")[4]
         xypairlength = xypairlength[1:len(xypairlength) -2]
         xypairlength = xypairlength.split(",")
         if(len(xypairlength) < 8):
@@ -221,32 +219,56 @@ def modifyelementfile():
     # removing the elements from the  list "updateelementlist" with elementposition text label
     for i in range(len(listelementpositiontextlabel)):
         updateelementlist.remove(listelementpositiontextlabel[i])    
-         
+
+# 
+# Function to return width value from the elementlist "Sl. No : Layer Name : Layer No : Width(nm) : XY Position"
+#
+def sortwidth(inputlist):
+    widthvalue = float(inputlist.split(":")[3])                
+    return widthvalue
+
+# Code starts here ...!!!!
+
 # open the given gds file for reading in binary mode
-with open("INV_X1.gds", "rb") as stream:
+with open("AND2_X1.gds", "rb") as stream:
     file_name_input = stream.name.split(".")
     file_name = (file_name_input[0],"txt")
     file_name_output =".".join(file_name)                                           # TEXT FILE NAME CREATION
+    
     file_name_element = (file_name_input[0],"element","data")
     file_name_element_output = "_".join(file_name_element)
-    file_name_element_output_join  = (file_name_element_output,"txt")           
-    file_name_spice_output_join = (file_name_input[0],"sp")                
-    global fine_name_element_final
+    file_name_element_output_join  = (file_name_element_output,"txt")
+
+    file_name_element_width = (file_name_input[0],"element","width","order") 
+    file_name_element_width_output = "_".join(file_name_element_width)
+    file_name_element_width_output_join = (file_name_element_width_output,"txt")
+
+    file_name_layer_info = (file_name_input[0],"Layer","Information")
+    file_name_layer_info_output = "_".join(file_name_layer_info)
+    file_name_layer_info_output_join = (file_name_layer_info_output,"txt")
+
+    file_name_spice_output_join = (file_name_input[0],"sp") 
+                 
+    global file_name_element_final
     global file_name_spice_final
-    fine_name_element_final = ".".join(file_name_element_output_join)               # ELEMENT FILE NAME CREATION
+    global file_name_element_width_final
+    global file_name_layer_info_final
+    file_name_element_final = ".".join(file_name_element_output_join)               # ELEMENT FILE NAME CREATION
     file_name_spice_final = ".".join(file_name_spice_output_join)                   # SPICE FILE NAME CREATION
+    file_name_element_width_final = ".".join(file_name_element_width_output_join)   # ELEMENT FILE WIDTH ORDER CREATION
+    file_name_layer_info_final = ".".join(file_name_layer_info_output_join)         # LAYER INFORMATION FILE CREATION
 
 
     # Based on the different data type , writing the necessary information to the text file
     with open(file_name_output, "w") as result:
-        with open(fine_name_element_final,"w") as elementresult:
+        with open(file_name_element_final,"w") as elementresult:
             with open(file_name_spice_final,"w") as spiceresult:
 
                 global linenumber 
                 linenumber = 0
                 result.write("GDS:FileName:" + stream.name + "\n")
                 result.write("\n")
-                elementresult.write("GDS:FileName:" + stream.name + " : No : Layer Name : Layer No : XY Position" + "\n")
+                elementresult.write("GDS:FileName:" + stream.name + " : Sl. No : Layer Name : Layer No : Width(nm) : XY Position" + "\n")
                 spiceresult.write("Circuit:" + stream.name +  "\n")                    # SPICE FILE LINE1
                 spiceresult.write(".SUBCKT " +  file_name_input[0] + " ")              # SPICE FILE LINE2
                 # Iterate through all the records in the given file
@@ -269,7 +291,7 @@ with open("INV_X1.gds", "rb") as stream:
                         result.write("Area:" + str(area_element(record_details.data)[0])+"U" + "\n")
                         result.write("Length: " + str(area_element(record_details.data)[1]) + "nm" + "\n")
                         result.write("Width: " + str(area_element(record_details.data)[2]) + "nm" + "\n")
-                        elementresult.write(str(new_data)+"\n")
+                        elementresult.write(str(area_element(record_details.data)[2]) + ":" + str(new_data)+"\n")
                         result.write("\n")
                     elif record_details.tag_type == types.REAL8: 
                         result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n")
@@ -292,7 +314,7 @@ with open("INV_X1.gds", "rb") as stream:
 
 # Reading the elementfile and creating the global list of elements
 
-with open(fine_name_element_final, "r") as updateelementfile:
+with open(file_name_element_final, "r") as updateelementfile:
     # read all the lines and return as list
     global updateelementlist 
     updateelementlist = updateelementfile.readlines()               
@@ -303,7 +325,7 @@ modifyelementfile()
 
 # Writing the elementfile with updated list "updateelementlist"
 
-with open(fine_name_element_final, "w") as updateelementfile:
+with open(file_name_element_final, "w") as updateelementfile:
     # read all the lines and return as list
     for i in updateelementlist:
         updateelementfile.write("%s" %i)
@@ -312,7 +334,7 @@ with open(fine_name_element_final, "w") as updateelementfile:
 # open the given element position details file for reading 
 # and calculate minimum distance between two elements
 
-with open(fine_name_element_final, "r") as elementfile:
+with open(file_name_element_final, "r") as elementfile:
     # read all the lines and return as list
     elementlist = elementfile.readlines() 
 
@@ -324,6 +346,33 @@ with open(fine_name_element_final, "r") as elementfile:
     min_distance = minimumdistance_element(firstelementpositionxy,secondelementpositionxy)
     print("Minimum distance between the elements :" + str(min_distance) + "nm")
     
-    # Pass the list and also the position of the element in the list for which the neighbouring elements has to be found
-    neighboring_element(elementlist,2) 
+    # Pass the element list and write the information on neighboring layers to the file "
+    list_layer_info = ["Current Layer : Previous Layer : Next Layer"]                            # LAYER INFORMATION FILE LINE1                                                              # LIST containing Layer Information
 
+    for i in range(1,len(elementlist)):
+        layerinfo = neighboring_element(elementlist,i)
+        list_layer_info.append(":".join(layerinfo))
+
+    # Deleting the duplicate items in the list "list_layer_info" 
+    list_layer_info = list(dict.fromkeys(list_layer_info))
+
+    # Writing the Layer Information to the file
+    with open(file_name_layer_info_final,"w") as file_open_layer_info: 
+        # write into the file 
+        for i in list_layer_info:
+            file_open_layer_info.write("%s \n" %i)
+        file_open_layer_info.close()
+
+
+    # To sort the elementlist based on increasing order of width's element
+    global listwidthsort
+    listwidthsort = elementlist[1:len(elementlist)]
+    listwidthsort.sort(key=sortwidth)
+
+#  Writing the elementfilewidth with  list "listwidthsort" updated based on element's width value
+with open(file_name_element_width_final, "w") as elementwidthfile:
+    # write into the file
+    elementwidthfile.write("GDS:FileName:" + stream.name + " : Sl. No : Layer Name : Layer No : Width(nm) : XY Position" + "\n")
+    for i in listwidthsort:
+        elementwidthfile.write("%s" %i)
+    elementwidthfile.close() 
