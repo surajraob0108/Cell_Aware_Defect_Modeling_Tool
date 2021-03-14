@@ -7,6 +7,8 @@ from gdsii import types
 from gdsii.record import Record
 from math import sqrt
 import array as arr
+from shapely.geometry import Point
+from shapely.geometry.polygon import Polygon
 
 # 
 # Layer Map Dictionary {"Layer Number":"Layer Name"}
@@ -102,11 +104,13 @@ def area_element(xycoordinateinput):
         length = length_element(new_data)
         width =  width_element(new_data)
         area_value  = length * width
+        asciidatatype = 0
     else:
         area_value = 0
         length=0
         width=0
-    return area_value,length,width
+        asciidatatype = 1
+    return area_value,length,width,asciidatatype
 
 # 
 # Function to calculate the minuimum distance between two elements 
@@ -226,11 +230,91 @@ def modifyelementfile():
 def sortwidth(inputlist):
     widthvalue = float(inputlist.split(":")[3])                
     return widthvalue
+# 
+# Function to create a file with only metal layer boundary elements 
+#
+def elementmetallayer():
+    elementpositiontextlabel = []                                                             # Array to hold element position with text label
+    listmetallayerboundaryelements = []                                                       # List to hold the metal layer boundary elements only
+    listmetallayertextelements = []                                                           # List to hold the metal layer text elements only
+    listpolygonboundaryelements = []                                                          # List to hold the polygon of boundary elements
+    listpositiontextelements = []                                                             # List to hold the position of text elements
+    asciistring = []                                                                          # List to hold ascii string data
+    with open("MetalLayerElements.txt", "w") as filemetallayerelements:
+
+        for i in range(1,len(updateelementlist)):
+            layernumber_metal = updateelementlist[i].split(":")[2]                            # Separating based on layer number
+            if(layernumber_metal == "15" or layernumber_metal == "16"):
+                listmetallayerboundaryelements.append(updateelementlist[i])                   # appending the list with metal layer elements (boundary and text)
+
+        #print(listmetallayerboundaryelements)
+
+        for i in range(0,len(listmetallayerboundaryelements)):
+            xypairlength = listmetallayerboundaryelements[i].split(":")[4]
+            xypairlength = xypairlength[1:len(xypairlength) -2]            
+            xypairlength = xypairlength.replace("'","").split(",")
+            if(len(xypairlength) < 3):
+                elementpositiontextlabel.append(i)
+                point = Point(int(xypairlength[0]),int(xypairlength[1]))
+                listpositiontextelements.append(point)                                       # appending the list with XY Pair position text elements
+            else:
+                pointsarray = []                                                             # list to hold the XY pair of points
+                for j in range(0,len(xypairlength) - 1,2):
+                    pointsarray.append(Point(int(xypairlength[j]),int(xypairlength[j+1])))
+                listpolygonboundaryelements.append(Polygon(pointsarray))                     # appending the list with XY Pair position boundary elements
+            
+
+        # adding the elements to list "listmetallayertextelements" with elementposition text label only
+        for i in range(len(elementpositiontextlabel)):                         
+            listmetallayertextelements.append(listmetallayerboundaryelements[elementpositiontextlabel[i]])
+            textposition = listmetallayertextelements[i].split(":")[4]
+            textposition = textposition[1:len(textposition) -2]
+            textposition = textposition.replace("'","").split(",")
+            point = Point(int(textposition[0]),int(textposition[1]))
+            textdata = listmetallayertextelements[i].split(":")[5]
+            positiontext = str(point) + ":" + textdata.replace("\n","")
+            asciistring.append(positiontext)                                                    # appending the ascii text string to the list
+        value = 0
+
+        # Finding the point related it whether it lies inside the polygon
+        # Updating the list by adding ascii text string to its related boundary element
+        for i in listpositiontextelements:                                                  # for every point of text element
+            for j in listpolygonboundaryelements:                                           # for every polygon of boundary element
+                if(j.contains(i)):                                                          # will be true for one of the boundary element only
+                    for k in asciistring:                                                   # for every text so that it relates with the point
+                        textpointasciistring = k.split(":")[0]                      
+                        textpointlistpositiontextelements = str(i)
+                        if(textpointasciistring == textpointlistpositiontextelements):
+                            textdataasciistring =  k.split(":")[1]                          # only if the point is in the polygon and point matches with the text                        
+                            data = str(listmetallayerboundaryelements[value])
+                            #data = data.replace(data[0:2],asciistring[value].replace("\n",""))      # replace Sl.No with the ascii text string
+                            data = data.replace("\n","") + ":" + textdataasciistring +"\n"           # adding the ascii text string to its related boundary element
+                            del listmetallayerboundaryelements[value]
+                            listmetallayerboundaryelements.insert(value,data)                               
+                            value = 0
+                            break
+                        else:
+                            continue
+                    break
+                else:
+                    value = value + 1
+                    continue
+        
+        # removing the elements from the  list "listmetallayerboundaryelements" with elementposition text label
+        for i in range(len(listmetallayertextelements)):
+            listmetallayerboundaryelements.remove(listmetallayertextelements[i]) 
+
+        listmetallayerboundaryelements.sort(key=sortwidth)                                   # sorted metal layer boundary elements based on their width       
+
+        filemetallayerelements.write("GDS:FileName:" + stream.name + " Text Element : Layer Name : Layer No : Width(nm) : XY Position" + "\n")
+        for i in listmetallayerboundaryelements:
+            filemetallayerelements.write("%s" %i)
+        filemetallayerelements.close()    
 
 # Code starts here ...!!!!
-
+# CellName.txt and CellName_element_data.txt (Partial)
 # open the given gds file for reading in binary mode
-with open("AND2_X1.gds", "rb") as stream:
+with open("INV_X1.gds", "rb") as stream:
     file_name_input = stream.name.split(".")
     file_name = (file_name_input[0],"txt")
     file_name_output =".".join(file_name)                                           # TEXT FILE NAME CREATION
@@ -291,7 +375,10 @@ with open("AND2_X1.gds", "rb") as stream:
                         result.write("Area:" + str(area_element(record_details.data)[0])+"U" + "\n")
                         result.write("Length: " + str(area_element(record_details.data)[1]) + "nm" + "\n")
                         result.write("Width: " + str(area_element(record_details.data)[2]) + "nm" + "\n")
-                        elementresult.write(str(area_element(record_details.data)[2]) + ":" + str(new_data)+"\n")
+                        if(str(area_element(record_details.data)[3]) == "0"):
+                            elementresult.write(str(area_element(record_details.data)[2]) + ":" + str(new_data)+"\n")
+                        else:
+                            elementresult.write(str(area_element(record_details.data)[2]) + ":" + str(new_data)+":")
                         result.write("\n")
                     elif record_details.tag_type == types.REAL8: 
                         result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  str(record_details.data) + "\n")
@@ -299,6 +386,7 @@ with open("AND2_X1.gds", "rb") as stream:
                     elif record_details.tag_type == types.ASCII:            
                         result.write("RecordType:"+ str(record_details.tag_name) + "\n" + "DataType:" + str(record_details.tag_type_name) + "\n" + "Data:" +  record_details.data.decode('utf-8') + "\n")
                         if(record_details.tag_name == "STRING"):
+                            elementresult.write(record_details.data.decode('utf-8') + "\n" )
                             spiceresult.write(record_details.data.decode('utf-8') + " ")      # SPICE FILE LINE2 Continue
                         result.write("\n")
                     elif record_details.tag_type == types.NODATA:            
@@ -312,15 +400,19 @@ with open("AND2_X1.gds", "rb") as stream:
             spiceresult.close()
             result.close()
 
-# Reading the elementfile and creating the global list of elements
-
+###           
+#CellName_element_data.txt (removing XY pair - text elements)
+# Reading the elementfile (CellName_element_data.txt) and creating the global list of elements
 with open(file_name_element_final, "r") as updateelementfile:
     # read all the lines and return as list
     global updateelementlist 
     updateelementlist = updateelementfile.readlines()               
     updateelementfile.close()
 
-# Modify the elementfile
+# Separating the elements belongng to metal layer - information with metal layer elements only
+elementmetallayer()
+
+# Modify the elementfile (removing XY pair - text elements)
 modifyelementfile()
 
 # Writing the elementfile with updated list "updateelementlist"
@@ -330,7 +422,8 @@ with open(file_name_element_final, "w") as updateelementfile:
     for i in updateelementlist:
         updateelementfile.write("%s" %i)
     updateelementfile.close()
-
+### 
+ 
 # open the given element position details file for reading 
 # and calculate minimum distance between two elements
 
@@ -344,7 +437,8 @@ with open(file_name_element_final, "r") as elementfile:
 
     # distance between two elements 
     min_distance = minimumdistance_element(firstelementpositionxy,secondelementpositionxy)
-    print("Minimum distance between the elements :" + str(min_distance) + "nm")
+    #print("Minimum distance between the elements :" + str(min_distance) + "nm")
+
     
     # Pass the element list and write the information on neighboring layers to the file "
     list_layer_info = ["Current Layer : Previous Layer : Next Layer"]                            # LAYER INFORMATION FILE LINE1                                                              # LIST containing Layer Information
@@ -356,6 +450,7 @@ with open(file_name_element_final, "r") as elementfile:
     # Deleting the duplicate items in the list "list_layer_info" 
     list_layer_info = list(dict.fromkeys(list_layer_info))
 
+    # CellName_Layer_Information.txt
     # Writing the Layer Information to the file
     with open(file_name_layer_info_final,"w") as file_open_layer_info: 
         # write into the file 
@@ -369,6 +464,7 @@ with open(file_name_element_final, "r") as elementfile:
     listwidthsort = elementlist[1:len(elementlist)]
     listwidthsort.sort(key=sortwidth)
 
+# CellName_element_width_order.txt
 #  Writing the elementfilewidth with  list "listwidthsort" updated based on element's width value
 with open(file_name_element_width_final, "w") as elementwidthfile:
     # write into the file
@@ -376,3 +472,15 @@ with open(file_name_element_width_final, "w") as elementwidthfile:
     for i in listwidthsort:
         elementwidthfile.write("%s" %i)
     elementwidthfile.close() 
+
+# Finding the minimum distance between the boundary elements in the metal layer only
+with open("MetalLayerElements.txt", "r") as boundaryelementsmetallayerfile:
+    boundaryelementsmetallayerlist = boundaryelementsmetallayerfile.readlines()
+
+    # Pass the list and also the position of the elements in the list for which the minimum distance has to be calculated
+    firstelementpositionxy = xypairposition_element(boundaryelementsmetallayerlist,1)
+    secondelementpositionxy = xypairposition_element(boundaryelementsmetallayerlist,2)
+
+    # distance between two elements 
+    min_distance = minimumdistance_element(firstelementpositionxy,secondelementpositionxy)
+    print("Minimum distance between the elements :" + str(min_distance) + " nm" + "\n") 
