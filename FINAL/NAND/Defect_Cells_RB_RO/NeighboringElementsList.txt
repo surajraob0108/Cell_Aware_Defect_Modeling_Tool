@@ -1,0 +1,26 @@
+Distance between the metal elements
+A2 and A1 is 100.0 nm
+A2 and ZN is 64.89992295835181 nm
+A2 and VSS is 228.0 nm
+A2 and VDD is 166.0 nm
+Closest Element to A2-ZN
+A1 and A2 is 100.0 nm
+A1 and ZN is 54.037024344425184 nm
+A1 and VSS is 228.0 nm
+A1 and VDD is 166.0 nm
+Closest Element to A1-ZN
+ZN and A2 is 64.89992295835181 nm
+ZN and A1 is 54.037024344425184 nm
+ZN and VSS is 105.0 nm
+ZN and VDD is 538.0 nm
+Closest Element to ZN-A1
+VSS and A2 is 228.0 nm
+VSS and A1 is 228.0 nm
+VSS and ZN is 105.0 nm
+VSS and VDD is 712.0 nm
+Closest Element to VSS-ZN
+VDD and A2 is 166.0 nm
+VDD and A1 is 166.0 nm
+VDD and ZN is 538.0 nm
+VDD and VSS is 712.0 nm
+Closest Element to VDD-A2 and A1

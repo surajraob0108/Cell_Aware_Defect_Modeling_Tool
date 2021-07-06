@@ -1,0 +1,17 @@
+Distance between the metal elements
+I and ZN is 36.0 nm
+I and VSS is 164.0 nm
+I and VDD is 164.0 nm
+Closest Element to I-ZN
+ZN and I is 36.0 nm
+ZN and VSS is 86.0 nm
+ZN and VDD is 100.0 nm
+Closest Element to ZN-I
+VSS and I is 164.0 nm
+VSS and ZN is 86.0 nm
+VSS and VDD is 712.0 nm
+Closest Element to VSS-ZN
+VDD and I is 164.0 nm
+VDD and ZN is 100.0 nm
+VDD and VSS is 712.0 nm
+Closest Element to VDD-ZN
