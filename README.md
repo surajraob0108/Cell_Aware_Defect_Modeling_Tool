@@ -7,5 +7,5 @@ In the manufacturing test, there is certain level of nominal frequency set for t
 Resulting in early life failure (ELF) of the device.
 
  - Solution to the Problem:
-Insert resistive defects with high probability that would result in small delay in the circuit using the layout and netlist information of the cell
-Generating the efficient & realistic defect models that would help in analysis of small delay
+1. Insert resistive defects with high probability that would result in small delay in the circuit using the layout and netlist information of the cell
+2. Generating the efficient & realistic defect models that would help in analysis of small delay
