@@ -1,4 +1,4 @@
-# Cell_Aware_Defect_Modeling_Tool - Purpose of Study Project
+# Study Project, University of Stuttgart
 
 - Scientific Problem:
 In the manufacturing test, there is certain level of nominal frequency set for the delay measured in the circuit. The delay due to small delay defects are not detected in these tests as the delay is too small and well within the margin. But this delay might increase in the field level due to various parameters and becomes stronger.
